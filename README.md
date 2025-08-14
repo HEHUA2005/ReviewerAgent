@@ -138,17 +138,6 @@ curl -X POST http://localhost:9997/api/jsonrpc \
   }'
 ```
 
-### 3. 测试客户端
-```bash
-# 交互模式
-python tests/test_client.py --interactive
-
-# 搜索测试
-python tests/test_client.py --test search --input "transformer attention"
-
-# PDF 审稿测试
-python tests/test_client.py --test pdf --input "path/to/paper.pdf"
-```
 
 ## 审稿标准
 
