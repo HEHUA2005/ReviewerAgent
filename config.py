@@ -7,7 +7,7 @@ load_dotenv()
 
 # Server Configuration
 HOST = os.getenv("AGENT_HOST", "0.0.0.0")
-PORT = int(os.getenv("AGENT_PORT", "9997"))
+PORT = int(os.getenv("AGENT_PORT", "9998"))
 AGENT_URL = os.getenv("AGENT_URL", f"http://localhost:{PORT}/")
 
 # LLM Configuration

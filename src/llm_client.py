@@ -121,7 +121,7 @@ class LLMClient:
 
             messages = [{"role": "user", "content": prompt}]
 
-            stream = await self.client.chat.completions.create(
+            stream = self.client.chat.completions.create(
                 model=self.model,
                 messages=messages,
                 max_tokens=self.max_tokens,
@@ -160,7 +160,7 @@ class LLMClient:
         try:
             logger.info(f"Chatting with model: {self.model}")
 
-            response = await self.client.chat.completions.create(
+            response = self.client.chat.completions.create(
                 model=self.model,
                 messages=[m.to_dict() for m in messages],
                 max_tokens=self.max_tokens,

@@ -9,7 +9,7 @@ requires-python = ">=3.10"
 readme = "README.md"
 license = {text = "MIT"}
 dependencies = [
-    "a2a-sdk>=0.3.0",
+    "a2a-sdk[http-server]>=0.3.0",
     "uvicorn>=0.17.6",
     "starlette>=0.19.1",
     "PyPDF2>=2.10.0",
