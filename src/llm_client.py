@@ -6,8 +6,8 @@ import logging
 from typing import Dict, List, Optional, AsyncGenerator
 from xml.parsers.expat import model
 from openai import OpenAI
-from dotenv import load_dotenv
 import os
+
 # Configure logging
 logger = logging.getLogger(__name__)
 
@@ -29,7 +29,6 @@ class LLMClient:
 
     def __init__(self):
         """Initialize the LLM client."""
-        load_dotenv()
         self.api_key = os.getenv("API_KEY")
         self.base_url = os.getenv("BASE_URL")
         self.model = os.getenv("LLM_MODEL")
@@ -38,7 +37,9 @@ class LLMClient:
         logger.info("Initializing LLM client")
         self.client = self._create_client()
         if not self.client:
-            logger.error("Failed to initialize LLM client. Review functionality will be severely limited.")
+            logger.error(
+                "Failed to initialize LLM client. Review functionality will be severely limited."
+            )
 
     def _create_client(self) -> Optional[OpenAI]:
         """Create the OpenAI client."""
