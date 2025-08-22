@@ -92,16 +92,14 @@ You are a task router for an academic paper review agent. Analyze the following 
 USER REQUEST: "{text_content}"
 
 Choose one of the following task types:
-1. "search_paper" - User wants to search for papers using keywords or a description
-2. "review_paper_url" - User wants to review a paper from a URL
-3. "paper_selection" - User is selecting a paper from search results
-4. "review_template" - User wants to see the review criteria template
-5. "welcome" - The user is greeting you or asking about the agent function
-6. "other" - None of the above
+1. "review_paper_url" - User wants to review a paper from a URL
+2. "review_template" - User wants to see the review criteria template
+3. "welcome" - The user is greeting you or asking about the agent function
+4. "other" - None of the above
 
 Return your answer in JSON format:
 {{
-  "task_type": "search_paper|review_paper_url|paper_selection|review_template|welcome|other",
+  "task_type": "review_paper_url|review_template|welcome|other",
   "parameters": {{
     // Additional parameters based on task type
     "query": "{text_content}" // For search_paper, please summarize the content users want to search more clearly here
@@ -118,29 +116,13 @@ User Request: "你好"
   "task_type": "welcome",
 }}
 
-User Request: "帮我找一下关于 Transformer 的论文"
-{{
-  "task_type": "search_paper",
-  "parameters": {{
-    "query": "关于 Transformer 的论文"
-  }}
-}}
 
-User Request: "https://arxiv.org/abs/1706.03762"
+User Request: "I want you review this paper https://arxiv.org/abs/1706.03762"
 {{
   "task_type": "review_paper_url",
   "parameters": {{
     "query": "https://arxiv.org/abs/1706.03762",
     "url": "https://arxiv.org/abs/1706.03762"
-  }}
-}}
-
-User Request: "选第二篇"
-{{
-  "task_type": "paper_selection",
-  "parameters": {{
-    "query": "选第二篇",
-    "selection": 2
   }}
 }}
 
