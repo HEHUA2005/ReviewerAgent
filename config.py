@@ -47,26 +47,26 @@ def get_agent_skills() -> List[AgentSkill]:
                 "[Upload PDF file for review]",
             ],
         ),
-        AgentSkill(
-            id="search_and_review",
-            name="Search and Review Paper",
-            description="Search for academic papers from arXiv and Semantic Scholar based on natural language queries. Returns numbered list of results (up to 5 papers) with titles, authors, abstracts. Supports multi-step workflow: search → select → download → review. Papers are cached locally for efficiency.",
-            tags=[
-                "search",
-                "review",
-                "academic",
-                "arxiv",
-                "semantic-scholar",
-                "multi-step",
-            ],
-            examples=[
-                "Find papers about transformer attention mechanisms",
-                "Search for recent papers on reinforcement learning",
-                "找一些关于GAN的论文",
-                "Select paper 2",
-                "选第一篇",
-            ],
-        ),
+        # AgentSkill(
+        #     id="search_and_review",
+        #     name="Search and Review Paper",
+        #     description="Search for academic papers from arXiv and Semantic Scholar based on natural language queries. Returns numbered list of results (up to 5 papers) with titles, authors, abstracts. Supports multi-step workflow: search → select → download → review. Papers are cached locally for efficiency.",
+        #     tags=[
+        #         "search",
+        #         "review",
+        #         "academic",
+        #         "arxiv",
+        #         "semantic-scholar",
+        #         "multi-step",
+        #     ],
+        #     examples=[
+        #         "Find papers about transformer attention mechanisms",
+        #         "Search for recent papers on reinforcement learning",
+        #         "找一些关于GAN的论文",
+        #         "Select paper 2",
+        #         "选第一篇",
+        #     ],
+        # ),
         AgentSkill(
             id="review_paper_url",
             name="Review Paper from URL",
@@ -78,18 +78,18 @@ def get_agent_skills() -> List[AgentSkill]:
                 "Analyze the paper at https://arxiv.org/abs/2010.11929",
             ],
         ),
-        AgentSkill(
-            id="get_review_template",
-            name="Get Review Template",
-            description="Display the review criteria template with detailed scoring guidelines (1-10 scale) for methodology, novelty, clarity, and significance. Explains the review process and evaluation standards used by the agent.",
-            tags=["template", "criteria", "guidelines", "scoring", "standards"],
-            examples=[
-                "Show me the review criteria",
-                "What scoring system do you use?",
-                "How do you evaluate papers?",
-                "评分标准是什么？",
-            ],
-        ),
+        # AgentSkill(
+        #     id="get_review_template",
+        #     name="Get Review Template",
+        #     description="Display the review criteria template with detailed scoring guidelines (1-10 scale) for methodology, novelty, clarity, and significance. Explains the review process and evaluation standards used by the agent.",
+        #     tags=["template", "criteria", "guidelines", "scoring", "standards"],
+        #     examples=[
+        #         "Show me the review criteria",
+        #         "What scoring system do you use?",
+        #         "How do you evaluate papers?",
+        #         "评分标准是什么？",
+        #     ],
+        # ),
         AgentSkill(
             id="greeting_and_help",
             name="Greeting and Help",
@@ -126,10 +126,7 @@ The agent accepts messages following the A2A (Agent-to-Agent) protocol structure
 
 INPUT TYPES:
 1. TEXT MESSAGES (kind: "text"):
-   - Paper search queries: "Find papers about transformer attention mechanisms"
-   - Paper selection: "Select paper 2" or "Choose the first one"
-   - Direct URL review: "https://arxiv.org/abs/1706.03762"
-   - Review template request: "Show me the review criteria"
+   - Direct URL review: "Please review this paper: https://arxiv.org/abs/1706.03762"
 
 2. FILE MESSAGES (kind: "file"):
    - PDF files with academic papers
