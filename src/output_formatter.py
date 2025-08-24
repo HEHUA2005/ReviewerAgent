@@ -1,27 +1,29 @@
 """
 Output Formatter module for formatting review results.
 """
+
 import json
 import logging
 from typing import Dict, List, Optional, Union
 
-from src.review_engine import ReviewResult
+from src.review_engine import ReviewResult, ReviewCriteria
 
 # Configure logging
 logger = logging.getLogger(__name__)
 
+
 class OutputFormatter:
     """Class for formatting review results."""
-    
+
     @staticmethod
     def format_review(review_result: ReviewResult, output_format: str = "json") -> str:
         """
         Format a review result.
-        
+
         Args:
             review_result: ReviewResult object
             output_format: Output format ("json", "text", "markdown")
-        
+
         Returns:
             Formatted review
         """
@@ -34,147 +36,191 @@ class OutputFormatter:
         else:
             logger.warning(f"Unknown output format: {output_format}, using json")
             return OutputFormatter.format_as_json(review_result)
-    
+
     @staticmethod
     def format_as_json(review_result: ReviewResult) -> str:
         """Format review result as JSON."""
         return review_result.to_json()
-    
+
     @staticmethod
     def format_as_text(review_result: ReviewResult) -> str:
         """Format review result as plain text."""
         return str(review_result)
-    
+
     @staticmethod
     def format_as_markdown(review_result: ReviewResult) -> str:
         """Format review result as Markdown."""
         paper_info = review_result.paper_info
         scores = review_result.scores
-        
+
         # Paper info
         md = f"# Review of: {paper_info.get('title', 'Unknown Title')}\n\n"
-        
-        if paper_info.get('authors'):
+
+        if paper_info.get("authors"):
             md += f"**Authors**: {', '.join(paper_info['authors'])}\n"
-        
-        if paper_info.get('year'):
+
+        if paper_info.get("year"):
             md += f"**Year**: {paper_info['year']}\n"
-        
-        if paper_info.get('source'):
+
+        if paper_info.get("source"):
             md += f"**Source**: {paper_info['source']}\n"
-        
+
         md += "\n## Review Scores\n\n"
-        
+
         # Scores
         for key, score in scores.items():
             md += f"- **{key.title()}**: {score}/10\n"
         md += f"- **Overall**: {round(review_result.overall_score, 1)}/10\n\n"
-        
+
         # Summary
         md += f"## Summary\n\n{review_result.summary}\n\n"
-        
+
         # Strengths
         md += "## Strengths\n\n"
         for strength in review_result.strengths:
             md += f"- {strength}\n"
         md += "\n"
-        
+
         # Weaknesses
         md += "## Weaknesses\n\n"
         for weakness in review_result.weaknesses:
             md += f"- {weakness}\n"
         md += "\n"
-        
+
         # Questions (if any)
         if review_result.questions:
             md += "## Questions\n\n"
             for question in review_result.questions:
                 md += f"- {question}\n"
-        
+
         return md
-    
+
     @staticmethod
-    def format_search_results_for_confirmation(results: List[Dict], output_format: str = "markdown") -> str:
+    def format_search_results_for_confirmation(
+        results: List[Dict], output_format: str = "markdown"
+    ) -> str:
         """
         Format search results for user confirmation.
-        
+
         Args:
             results: List of search result dictionaries
             output_format: Output format ("markdown", "text")
-        
+
         Returns:
             Formatted search results
         """
         if not results:
             return "No papers found matching your query."
-        
+
         if output_format == "markdown":
             return OutputFormatter._format_search_results_markdown(results)
         else:
             return OutputFormatter._format_search_results_text(results)
-    
+
     @staticmethod
     def _format_search_results_markdown(results: List[Dict]) -> str:
         """Format search results as Markdown."""
         md = "# Search Results\n\n"
         md += "I found the following papers that match your query:\n\n"
-        
+
         for i, result in enumerate(results):
             authors_str = ", ".join(result.get("authors", [])[:3])
             if len(result.get("authors", [])) > 3:
                 authors_str += " et al."
-            
+
             year_str = f" ({result.get('year')})" if result.get("year") else ""
-            
-            md += f"## {i+1}. {result.get('title', 'Unknown Title')}\n\n"
+
+            md += f"## {i + 1}. {result.get('title', 'Unknown Title')}\n\n"
             md += f"**Authors**: {authors_str}{year_str}\n\n"
             md += f"**Source**: {result.get('source', 'Unknown').title()}\n\n"
-            
+
             if result.get("abstract"):
                 # Truncate abstract if too long
                 abstract = result["abstract"]
                 if len(abstract) > 300:
                     abstract = abstract[:300] + "..."
                 md += f"**Abstract**: {abstract}\n\n"
-            
+
             if result.get("url"):
                 md += f"**URL**: {result['url']}\n\n"
-            
+
             if result.get("pdf_url"):
                 md += f"**PDF**: {result['pdf_url']}\n\n"
-            
+
             md += "---\n\n"
-        
+
         md += "Please select a paper by number to review, or provide more details to refine the search."
-        
+
         return md
-    
+
     @staticmethod
     def _format_search_results_text(results: List[Dict]) -> str:
         """Format search results as plain text."""
         text = "Search Results\n\n"
         text += "I found the following papers that match your query:\n\n"
-        
+
         for i, result in enumerate(results):
             authors_str = ", ".join(result.get("authors", [])[:3])
             if len(result.get("authors", [])) > 3:
                 authors_str += " et al."
-            
+
             year_str = f" ({result.get('year')})" if result.get("year") else ""
-            
-            text += f"{i+1}. {result.get('title', 'Unknown Title')}\n"
+
+            text += f"{i + 1}. {result.get('title', 'Unknown Title')}\n"
             text += f"   Authors: {authors_str}{year_str}\n"
             text += f"   Source: {result.get('source', 'Unknown').title()}\n"
-            
+
             if result.get("abstract"):
                 # Truncate abstract if too long
                 abstract = result["abstract"]
                 if len(abstract) > 200:
                     abstract = abstract[:200] + "..."
                 text += f"   Abstract: {abstract}\n"
-            
+
             text += "\n"
-        
+
         text += "Please select a paper by number to review, or provide more details to refine the search."
-        
+
         return text
+
+    @staticmethod
+    def format_review_criteria(criteria_type: str = "academic_peer_review") -> str:
+        """
+        Format review criteria as a readable template.
+
+        Args:
+            criteria_type: Type of review criteria to format
+
+        Returns:
+            Formatted review criteria template
+        """
+        criteria = ReviewCriteria.get_criteria(criteria_type)
+
+        # Create header
+        template = "# 论文审稿标准\n\n"
+        template += (
+            "以下是审稿过程中使用的评分标准和指南。每个标准使用1-10分的评分体系。\n\n"
+        )
+
+        # Add each criterion
+        for key, value in criteria.items():
+            template += f"## {value['name']} (1-10分)\n\n"
+            template += f"{value['description']}\n\n"
+            template += "评分标准：\n\n"
+
+            for scale, desc in value["scale"].items():
+                template += f"- **{scale}分**: {desc}\n"
+
+            template += "\n"
+
+        # Add overall score explanation
+        template += "## 总体评分\n\n"
+        template += "总体评分是所有单项评分的平均值，反映论文的整体质量。\n\n"
+
+        # Add footer
+        template += "---\n"
+        template += (
+            "审稿报告将包含上述各项的评分，以及详细的优点、缺点分析和针对作者的问题。\n"
+        )
+
+        return template

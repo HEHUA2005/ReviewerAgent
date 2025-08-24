@@ -92,19 +92,21 @@ You are a task router for an academic paper review agent. Analyze the following 
 USER REQUEST: "{text_content}"
 
 Choose one of the following task types:
-1. "review_paper_url" - User wants to review a paper from a URL
-2. "review_template" - User wants to see the review criteria template
-3. "welcome" - The user is greeting you or asking about the agent function
-4. "other" - None of the above
+1. "review_paper_url" - User wants to review a paper from a URL (or multiple URLs)
+2. "review_multiple_urls" - User wants to review multiple papers from multiple URLs
+3. "review_template" - User wants to see the review criteria template
+4. "welcome" - The user is greeting you or asking about the agent function
+5. "other" - None of the above
 
 Return your answer in JSON format:
 {{
-  "task_type": "review_paper_url|review_template|welcome|other",
+  "task_type": "review_paper_url|review_multiple_urls|review_template|welcome|other",
   "parameters": {{
     // Additional parameters based on task type
     "query": "{text_content}" // For search_paper, please summarize the content users want to search more clearly here
     "selection":  integer // For paper_selection, this is the index or title of the paper
-    "url":  //For review_paper_url
+    "url":  // For review_paper_url
+    "urls": [] // For review_multiple_urls, this is an array of URLs
   }}
 }}
 Your response MUST be a valid JSON object and nothing else. Do not add any explanations or markdown formatting.
@@ -116,13 +118,21 @@ User Request: "你好"
   "task_type": "welcome",
 }}
 
-
 User Request: "I want you review this paper https://arxiv.org/abs/1706.03762"
 {{
   "task_type": "review_paper_url",
   "parameters": {{
     "query": "https://arxiv.org/abs/1706.03762",
     "url": "https://arxiv.org/abs/1706.03762"
+  }}
+}}
+
+User Request: "Please review these papers: https://arxiv.org/abs/1706.03762 and https://arxiv.org/abs/2005.14165"
+{{
+  "task_type": "review_multiple_urls",
+  "parameters": {{
+    "query": "Please review these papers: https://arxiv.org/abs/1706.03762 and https://arxiv.org/abs/2005.14165",
+    "urls": ["https://arxiv.org/abs/1706.03762", "https://arxiv.org/abs/2005.14165"]
   }}
 }}
 
@@ -524,11 +534,167 @@ User Request: "I want you review this paper https://arxiv.org/abs/1706.03762"
                 formatted_review += f"{i}. {question}\n"
             formatted_review += "\n"
 
-        formatted_review += """---
-*此审稿报告由AI助手生成，PDF已缓存至paper/目录以供后续使用。*
-"""
-
         return formatted_review
+
+    async def handle_multiple_paper_urls(self, urls: List[str], context_id: str) -> str:
+        """
+        Handle review of multiple papers from URLs.
+
+        Args:
+            urls: List of URLs to papers
+            context_id: Context ID for task tracking
+
+        Returns:
+            Formatted combined review of all papers
+        """
+        logger.info(f"Handling multiple paper URLs review for context: {context_id}")
+
+        # Store task state
+        self.tasks[context_id] = {
+            "state": "multiple_url_review",
+            "urls": urls,
+            "reviews": [],
+            "current_index": 0,
+            "total": len(urls),
+        }
+
+        all_reviews = []
+        failed_urls = []
+
+        # Process each URL
+        for i, url in enumerate(urls):
+            logger.info(f"Processing URL {i + 1}/{len(urls)}: {url}")
+
+            # Update task state
+            self.tasks[context_id]["current_index"] = i
+
+            try:
+                # Download PDF from URL
+                pdf_data = await self.paper_search.download_paper_from_url(url)
+
+                if pdf_data:
+                    # Process PDF
+                    paper_text, metadata = await self.process_pdf(pdf_data)
+
+                    # Extract paper info
+                    paper_info = self.pdf_processor.extract_paper_info_simple(
+                        paper_text, metadata
+                    )
+
+                    # Add URL to paper info
+                    paper_info["url"] = url
+
+                    # Generate review
+                    try:
+                        # Try using ReviewEngine first
+                        review_result = await self.review_engine.analyze_paper(
+                            paper_text, paper_info
+                        )
+                        review_dict = review_result.to_dict()
+                        formatted_review = self._format_comprehensive_review(
+                            review_dict
+                        )
+                    except Exception as e:
+                        logger.error(
+                            f"ReviewEngine failed for URL {url}, falling back to LLMReviewer: {e}"
+                        )
+                        # Fallback to LLMReviewer
+                        formatted_review = await self.llm_reviewer.generate_review(
+                            paper_info, paper_text
+                        )
+
+                    # Store review
+                    all_reviews.append(
+                        {
+                            "url": url,
+                            "review": formatted_review,
+                            "paper_info": paper_info,
+                        }
+                    )
+                    self.tasks[context_id]["reviews"].append(
+                        {
+                            "url": url,
+                            "review": formatted_review,
+                            "paper_info": paper_info,
+                        }
+                    )
+                else:
+                    logger.warning(f"Could not download PDF from URL: {url}")
+                    failed_urls.append(url)
+            except Exception as e:
+                logger.error(f"Error processing URL {url}: {e}")
+                failed_urls.append(url)
+
+        # Combine all reviews
+        combined_review = self._format_multiple_reviews(all_reviews, failed_urls)
+
+        return combined_review
+
+    def _format_multiple_reviews(
+        self, reviews: List[Dict], failed_urls: List[str]
+    ) -> str:
+        """
+        Format multiple reviews into a single response.
+
+        Args:
+            reviews: List of review dictionaries
+            failed_urls: List of URLs that failed to process
+
+        Returns:
+            Formatted combined review
+        """
+        if not reviews:
+            if failed_urls:
+                return (
+                    f"无法处理提供的URL。请检查URL是否有效，并确保它们指向可下载的PDF文件。\n\n失败的URL:\n"
+                    + "\n".join([f"- {url}" for url in failed_urls])
+                )
+            else:
+                return "未提供有效的URL。请提供指向学术论文的URL。"
+
+        # Start with a header
+        combined = f"# 多篇论文审稿报告\n\n共处理 {len(reviews)} 篇论文"
+        if failed_urls:
+            combined += f"，{len(failed_urls)} 篇处理失败"
+        combined += "。\n\n"
+
+        # Add table of contents
+        combined += "## 目录\n\n"
+        for i, review_data in enumerate(reviews, 1):
+            paper_info = review_data.get("paper_info", {})
+            title = paper_info.get("title", f"论文 {i}")
+            combined += f"{i}. [{title}](#paper-{i})\n"
+        combined += "\n"
+
+        # Add each review
+        for i, review_data in enumerate(reviews, 1):
+            url = review_data.get("url", "")
+            review = review_data.get("review", "")
+
+            # Add anchor and URL
+            combined += f"<a name='paper-{i}'></a>\n\n"
+            combined += f"# {i}. 论文审稿\n\n"
+            combined += f"**URL**: {url}\n\n"
+
+            # Add the review content, but remove the first heading line since we've added our own
+            review_lines = review.split("\n")
+            if review_lines and review_lines[0].startswith("# "):
+                review = "\n".join(review_lines[1:])
+
+            combined += review
+
+            # Add separator between reviews
+            if i < len(reviews):
+                combined += "\n\n---\n\n"
+
+        # Add failed URLs if any
+        if failed_urls:
+            combined += "\n\n## 处理失败的URL\n\n"
+            for url in failed_urls:
+                combined += f"- {url}\n"
+            combined += "\n处理失败可能是由于URL无效、PDF下载失败或处理过程中出错。"
+
+        return combined
 
     async def handle_review_template(self) -> str:
         """Return the review criteria template."""
@@ -620,7 +786,7 @@ class ReviewerAgentExecutor(AgentExecutor):
                 task_type = task_info.get("task_type", "other")
 
                 if task_type == "welcome":
-                    response = "Welcome to the Academic Paper Reviewer! I can help you search for papers and provide detailed reviews. How can I assist you today?"
+                    response = "Welcome to the Academic Paper Reviewer! I can help you provide detailed reviews for academic papers. How can I assist you today?"
 
                 elif task_type == "search_paper":
                     query = task_info.get("parameters", {}).get("query", combined_text)
@@ -651,8 +817,17 @@ class ReviewerAgentExecutor(AgentExecutor):
                     else:
                         response = "Please provide a valid URL to the paper you want to review."
 
+                elif task_type == "review_multiple_urls":
+                    urls = task_info.get("parameters", {}).get("urls", [])
+                    if urls:
+                        response = await self.agent.handle_multiple_paper_urls(
+                            urls, context_id
+                        )
+                    else:
+                        response = "Please provide valid URLs to the papers you want to review."
+
                 else:
-                    response = "I'm not sure how to help with that request. I can search for academic papers or review papers if you provide a PDF or URL."
+                    response = "I'm not sure how to help with that request. I just can review papers if you provide a PDF or URL."
 
             # Default welcome message if no input
             else:

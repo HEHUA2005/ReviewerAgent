@@ -23,6 +23,7 @@ ReviewerAgent 是一个智能的学术论文审稿助手，能够：
 - 直接上传 PDF 文件进行审稿
 - 智能文本提取和结构化分析
 - 支持从 URL 下载论文（如 arXiv 链接）
+- 支持批量处理多个论文 URL
 - 自动缓存机制，避免重复下载
 
 ### 3. 专业审稿系统
@@ -30,6 +31,7 @@ ReviewerAgent 是一个智能的学术论文审稿助手，能够：
 - **新颖性分析**：原创性和对领域的贡献度
 - **清晰度评分**：写作质量、组织结构和表达清晰度
 - **重要性判断**：对领域的影响力和相关性
+- **批量审稿**：支持同时审阅多篇论文并生成综合报告
 
 ### 4. A2A 协议集成
 - 完全兼容 Agent-to-Agent 通信协议
@@ -131,6 +133,26 @@ curl -X POST http://localhost:9997/api/jsonrpc \
             "mimeType": "application/pdf",
             "data": "BASE64_ENCODED_PDF_DATA"
           }
+        }]
+      }
+    },
+    "id": 1
+  }'
+```
+
+### 3. 批量审稿多个论文 URL
+```bash
+curl -X POST http://localhost:9997/api/jsonrpc \
+  -H "Content-Type: application/json" \
+  -d '{
+    "jsonrpc": "2.0",
+    "method": "sendMessage",
+    "params": {
+      "taskId": "task_id",
+      "message": {
+        "role": "user",
+        "parts": [{
+          "text": "请审阅这些论文：https://arxiv.org/abs/1706.03762 和 https://arxiv.org/abs/1810.04805"
         }]
       }
     },
